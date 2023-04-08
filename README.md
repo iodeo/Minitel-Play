@@ -1,2 +1,2 @@
 # Minitel-Play
-Videotex small games for Arduinos
+Videotex games for Arduinos
