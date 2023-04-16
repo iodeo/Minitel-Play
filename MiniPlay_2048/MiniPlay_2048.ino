@@ -62,10 +62,11 @@ enum {MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT,
 uint32_t score = 0;
 uint32_t bestScore = 0;
 uint32_t oldScore = 0;
-uint16_t maxTile = 0;
+int8_t maxTile = 0;
+bool newTile = false;
 
-uint16_t board[MAX_NB_OF_CELLS] = {0}; //{0,8,4,8, 4,8,4,2, 8,4,8,4, 4,8,4,0};
-uint16_t oldBoard[MAX_NB_OF_CELLS] = {0};
+int8_t board[MAX_NB_OF_CELLS] = {0};
+int8_t oldBoard[MAX_NB_OF_CELLS] = {0};
 
 bool over = false;
 int8_t ccount = 0;
@@ -138,9 +139,10 @@ void beginGame() {
   over = false;
   score = 0;
   maxTile = 0;
+  newTile = false;
   ccount = 0;
   for (int8_t index = 0; index < nbOfCells; index++) {
-    board[index] = 0;
+    board[index] = 0; //index?index+1:2;
     oldBoard[index] = 0;
   }
   
@@ -168,9 +170,10 @@ void playGame() {
       
       drawTile(addRandomTile());
       
-      if (maxTile == 2048) {
-        display2048();
-        maxTile++; //display only one time
+      if (newTile) {
+        newTile = false;
+        if (sound) minitel.bip();
+        if (maxTile == 11) display2048(); // 2^11 = 2048
       }
       
       if (!movesAvailable()) {
@@ -280,10 +283,10 @@ bool playMove(int8_t command) {
       if (merged[next]) continue; // tile already merged
       if (board[index] == board[next]) {
         merged[next] = true;
-        uint16_t value = board[next]*2;
+        int8_t value = board[next]+1;
         if (value > maxTile) {
           maxTile = value;
-          if (sound) minitel.bip();
+          newTile = true;
         }
         board[next] = value;
         board[index] = 0;
@@ -291,7 +294,7 @@ bool playMove(int8_t command) {
           drawTile(index);
           drawTile(next);
         }
-        score += value;
+        score += powerOf2(value);
       }
     }
   }
@@ -334,7 +337,7 @@ int8_t addRandomTile() {
   int8_t count = countAvailableCells();
   int8_t index = -1;
   if (count > 0) {
-    int8_t value = (random(100) < 90) ? 2 : 4;
+    int8_t value = (random(100) < 90) ? 1 : 2;
     int8_t nth = random(count) + 1;
     index = nthAvailableCell(nth);
     board[index] = value;
@@ -472,7 +475,7 @@ void drawBoardContour() {
 }
 
 void drawTile(int8_t index) {
-  uint16_t value = board[index];
+  int8_t value = board[index];
   int8_t x = xFirstTile + (index%boardSize)*(TILE_WIDTH+TILE_SPACER);
   int8_t y = yFirstTile + (index/boardSize)*(TILE_HEIGHT+TILE_SPACER);
   for (int8_t i = 0; i < TILE_HEIGHT; i++) {
@@ -480,7 +483,7 @@ void drawTile(int8_t index) {
     minitel.newXY(x,y+i);
     if (i == 1) {
       setTileColor(value, true); minitel.attributs(DOUBLE_HAUTEUR);
-      String str = String(board[index]);
+      String str = String(powerOf2(value));
       while (str.length() < 5) str = " " + str + " ";
       if (str.length() < 6) str = " " + str;
       minitel.print(str);
@@ -491,80 +494,89 @@ void drawTile(int8_t index) {
   }
 }
 
-void setTileColor(uint16_t value, bool setFontColor) {
+void setTileColor(int8_t value, bool setFontColor) {
   switch (value) {
-    case 0:
+    case 0: // empty
       minitel.attributs(FOND_NOIR);
       if (setFontColor) minitel.attributs(CARACTERE_NOIR);
       break;
-    case 2:
+    case 1: // tile 2
       minitel.attributs(FOND_BLANC);
       if (setFontColor) minitel.attributs(CARACTERE_MAGENTA);
       break;
-    case 4:
+    case 2: // tile 4
       minitel.attributs(FOND_CYAN);
       if (setFontColor) minitel.attributs(CARACTERE_ROUGE);
       break;
-    case 8:
+    case 3: // tile 8
       minitel.attributs(FOND_VERT);
       if (setFontColor) minitel.attributs(CARACTERE_BLEU);
       break;
-    case 16:
+    case 4: // tile 16
       minitel.attributs(FOND_MAGENTA);
       if (setFontColor) minitel.attributs(CARACTERE_JAUNE);
       break;
-    case 32:
+    case 5: // tile 32
       minitel.attributs(FOND_ROUGE);
       if (setFontColor) minitel.attributs(CARACTERE_CYAN);
       break;
-    case 64:
+    case 6: // tile 64
       minitel.attributs(FOND_BLEU);
       if (setFontColor) minitel.attributs(CARACTERE_VERT);
       break;
-    case 128:
+    case 7: // tile 128
       minitel.attributs(FOND_JAUNE);
       if (setFontColor) minitel.attributs(CARACTERE_VERT);
       break;
-    case 256:
+    case 8: // tile 256
       minitel.attributs(FOND_CYAN);
       if (setFontColor) minitel.attributs(CARACTERE_MAGENTA);
       break;
-    case 512:
+    case 9: // tile 512
       minitel.attributs(FOND_VERT);
       if (setFontColor) minitel.attributs(CARACTERE_ROUGE);
       break;
-    case 1024:
+    case 10: // tile 1024
       minitel.attributs(FOND_MAGENTA);
       if (setFontColor) minitel.attributs(CARACTERE_VERT);
       break;
-    case 2048:
+    case 11: // tile 2048
       minitel.attributs(FOND_BLANC);
       if (setFontColor) minitel.attributs(CARACTERE_NOIR);
       break;
-    case 4096:
+    case 12: // tile 4096
       minitel.attributs(FOND_NOIR);
       if (setFontColor) minitel.attributs(CARACTERE_BLANC);
       break;
-    case 8192:
+    case 13: // tile 8192
       minitel.attributs(FOND_BLANC);
       if (setFontColor) minitel.attributs(CARACTERE_ROUGE);
       break;
-    case 16384:
+    case 14: // tile 16384
       minitel.attributs(FOND_NOIR);
       if (setFontColor) minitel.attributs(CARACTERE_CYAN);
       break;      
-    case 32768:
+    case 15: // tile 32768
       minitel.attributs(FOND_BLANC);
       if (setFontColor) minitel.attributs(CARACTERE_VERT);
       break;
-    case 65355: // 65356 is same as 0
+    case 16: // tile 65536
       minitel.attributs(FOND_NOIR);
       if (setFontColor) minitel.attributs(CARACTERE_MAGENTA);
+      break;
+    case 17: // tile 131072
+      minitel.attributs(FOND_NOIR);
+      minitel.attributs(CARACTERE_BLANC);
+      minitel.attributs(INVERSION_FOND);
       break;
     default:
       minitel.attributs(FOND_NOIR);
       if (setFontColor) minitel.attributs(CARACTERE_BLANC);
   }
+}
+
+uint32_t powerOf2(int8_t exponent) {
+  return (uint32_t) 1 << exponent;
 }
 
 //----- Display screens & menus  -----------------------
@@ -582,8 +594,8 @@ void flushInputs() {
 
 void displayWelcome() {
   eraseScreen();
-  minitel.newXY(9,2);minitel.attributs(CARACTERE_VERT);
-  minitel.attributs(DOUBLE_LARGEUR);minitel.printChar('A');minitel.attributs(GRANDEUR_NORMALE);minitel.print("rduino ");
+  minitel.newXY(14,2);minitel.attributs(CARACTERE_VERT);
+  //minitel.attributs(DOUBLE_LARGEUR);minitel.printChar('A');minitel.attributs(GRANDEUR_NORMALE);minitel.print("rduino ");
   minitel.attributs(DOUBLE_LARGEUR);minitel.printChar('M');minitel.attributs(GRANDEUR_NORMALE);minitel.print("initel ");
   minitel.attributs(DOUBLE_LARGEUR);minitel.printChar('P');minitel.attributs(GRANDEUR_NORMALE);minitel.print("lay ");
   minitel.newXY(17,4);minitel.attributs(CARACTERE_BLEU);minitel.print("presents");
@@ -696,6 +708,7 @@ void displayOptions(bool inGame) {
       if (displayConfirm("Charger la partie ?")) {
         loadScore();
         loadBoard();
+        newTile = false;
         break;
       }
     }
@@ -835,7 +848,7 @@ void displayScore(bool best) {
   minitel.newXY(6,y++);minitel.print(" / ");minitel.repeat(24);minitel.print("\\ ");
   minitel.newXY(6,y++);minitel.print(" {Fin de partie en mode ");minitel.printChar(boardSize+48);minitel.printChar('x');minitel.printChar(boardSize+48);minitel.print(" {");
   minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
-  minitel.newXY(6,y);  minitel.print(" {  Votre score est:        {");
+  minitel.newXY(6,y);  minitel.print(" {  Votre score est         {");
   minitel.newXY(27,y++);minitel.attributs(INVERSION_FOND); minitel.print(String(score));
   minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
   if (best) {
@@ -859,6 +872,21 @@ void displayScore(bool best) {
 }
 
 //----- EEPROM functions -------------------------------
+
+/* EEPROM memory usage
+ *  Bytes 0 to 11 : Best scores
+ *   0 to 3 : mode 2x2 (uint32_t -> 4 bytes)
+ *   4 to 7 : mode 3x3 (uint32_t -> 4 bytes)
+ *   8 to 11: mode 4x4 (uint32_t -> 4 bytes)
+ *  Bytes 12 to 23 : Saved scores
+ *   12 to 15: mode 2x2 (uint32_t -> 4 bytes)
+ *   16 to 19: mode 3x3 (uint32_t -> 4 bytes)
+ *   20 to 23: mode 4x4 (uint32_t -> 4 bytes)
+ *  Bytes 24 to 52 : Saved boards
+ *   24 to 27: mode 2x2 (2*2 int8_t -> 4 bytes)
+ *   28 to 36: mode 3x3 (3*3 int8_t -> 9 bytes)
+ *   37 to 52: mode 4x4 (4*4 int8_t -> 16 bytes)
+ */
 
 void saveBestScore() {
   int addr = (boardSize-2)*sizeof(uint32_t);
@@ -884,22 +912,21 @@ void loadScore() {
 
 void saveBoard() {
   int addr = 2*(MAX_BOARD_SIZE-1)*sizeof(uint32_t);
-  if (boardSize > 2) addr += 2*2*sizeof(uint16_t);
-  if (boardSize > 3) addr += 3*3*sizeof(uint16_t);
+  if (boardSize > 2) addr += 2*2*sizeof(int8_t);
+  if (boardSize > 3) addr += 3*3*sizeof(int8_t);
   for (int8_t i = 0; i < nbOfCells ; i++) {
     EEPROM.put(addr, board[i]);
-    addr += sizeof(uint16_t);
+    addr += sizeof(int8_t);
   }
 }
 
 void loadBoard() {
   int addr = 2*(MAX_BOARD_SIZE-1)*sizeof(uint32_t);
-  if (boardSize > 2) addr += 2*2*2;//sizeof(uint16_t);
-  if (boardSize > 3) addr += 3*3*2;//sizeof(uint16_t);
+  if (boardSize > 2) addr += 2*2*sizeof(int8_t);
+  if (boardSize > 3) addr += 3*3*sizeof(int8_t);
   for (int8_t i = 0; i < nbOfCells ; i++) {
     EEPROM.get(addr, board[i]);
     if (board[i] > maxTile) maxTile = board[i];
-    addr += sizeof(uint16_t);
+    addr += sizeof(int8_t);
   }
-  if (maxTile == 2048) maxTile++; // do not display win screen
 }
