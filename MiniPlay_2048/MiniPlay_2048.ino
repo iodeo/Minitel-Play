@@ -59,6 +59,7 @@ int8_t yFirstTile = 4 + (MAX_BOARD_SIZE-boardSize)*(TILE_HEIGHT+TILE_SPACER)/2;
 
 enum {MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT,
        MENU_OPTIONS, MENU_HOWTO, MENU_CANCEL, MENU_REPEAT};
+
 uint32_t score = 0;
 uint32_t bestScore = 0;
 uint32_t oldScore = 0;
@@ -269,8 +270,8 @@ bool playMove(int8_t command) {
           moved = true;
           // copy score and board
           oldScore = score;
-          for (int8_t index = 0; index < nbOfCells; index++) {
-            oldBoard[index] = board[index];
+          for (int8_t i = 0; i < nbOfCells; i++) {
+            oldBoard[i] = board[i];
           }
         }
         board[next] = board[index];
@@ -297,8 +298,8 @@ bool playMove(int8_t command) {
           moved = true;
           // copy score and board
           oldScore = score;
-          for (int8_t index = 0; index < nbOfCells; index++) {
-            oldBoard[index] = board[index];
+          for (int8_t i = 0; i < nbOfCells; i++) {
+            oldBoard[i] = board[i];
           }
         }
         board[next] = value;
