@@ -242,11 +242,6 @@ bool playMove(int8_t command) {
       break;
   }
 
-  // take a copy of score and board
-  oldScore = score;
-  for (int8_t index = 0; index < nbOfCells; index++) {
-    oldBoard[index] = board[index];
-  }
   // use to avoid merging one tile several times
   bool merged[nbOfCells] = {false};
   // use to flag tile move
@@ -270,7 +265,14 @@ bool playMove(int8_t command) {
         // move until next tile and stop at board bound
         if (tVector > 0 && next > bound) break;
         if (tVector < 0 && next < bound) break;
-        if (!moved) moved = true;
+        if (!moved) { // first tile move
+          moved = true;
+          // copy score and board
+          oldScore = score;
+          for (int8_t index = 0; index < nbOfCells; index++) {
+            oldBoard[index] = board[index];
+          }
+        }
         board[next] = board[index];
         board[index] = 0;
         if (anima) {
@@ -290,6 +292,14 @@ bool playMove(int8_t command) {
         if (value > maxTile) {
           maxTile = value;
           newTile = true;
+        }
+        if (!moved) { // first tile move
+          moved = true;
+          // copy score and board
+          oldScore = score;
+          for (int8_t index = 0; index < nbOfCells; index++) {
+            oldBoard[index] = board[index];
+          }
         }
         board[next] = value;
         board[index] = 0;
