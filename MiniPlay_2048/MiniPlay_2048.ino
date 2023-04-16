@@ -249,6 +249,8 @@ bool playMove(int8_t command) {
   }
   // use to avoid merging one tile several times
   bool merged[nbOfCells] = {false};
+  // use to flag tile move
+  bool moved = false;
 
   // loop on each tiles, move them and merge them if needed
   yEnd += yIncr; // enable loop on last tile
@@ -268,6 +270,7 @@ bool playMove(int8_t command) {
         // move until next tile and stop at board bound
         if (tVector > 0 && next > bound) break;
         if (tVector < 0 && next < bound) break;
+        if (!moved) moved = true;
         board[next] = board[index];
         board[index] = 0;
         if (anima) {
@@ -296,15 +299,6 @@ bool playMove(int8_t command) {
         }
         score += powerOf2(value);
       }
-    }
-  }
-
-  // check if at least one tile moved
-  bool moved = false;
-  for (int8_t index = 0; index < nbOfCells; index++) {
-    if (board[index] != oldBoard[index]) {
-      moved = true;
-      break;
     }
   }
 
