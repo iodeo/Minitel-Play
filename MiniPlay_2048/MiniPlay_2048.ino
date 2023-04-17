@@ -7,18 +7,15 @@
 
 //----- Macros -----------------------------------------
 
-//#define MINITEL_PORT Serial2 //for ESP32
 #define MINITEL_PORT Serial1 //for Leonardo
 
-#define DEBUG false
+#define DEBUG false //WARNING! program will not start if DEBUG true without serial monitoring
 
 #if DEBUG // Debug enabled
   #define DEBUG_PORT Serial
-//  #define debugBegin(x)     DEBUG_PORT.begin(x) // for non-native usb
   #define debugBegin(x)     DEBUG_PORT.begin(x); while(!DEBUG_PORT) // only for native usb like Leonardo
   #define debugPrint(x)     DEBUG_PORT.print(x)
   #define debugPrintln(x)   DEBUG_PORT.println(x)
-//  #define debugPrintf(...)  DEBUG_PORT.printf(__VA_ARGS__) // for ESP
   #define debugPrintf(...)  pf(__VA_ARGS__) // for Arduinos
   void pf(char *fmt, ... ){
           char buf[128]; // resulting string limited to 128 chars
@@ -94,6 +91,7 @@ void setup() {
   minitel.modeVideotex();
   minitel.echo(false);
   minitel.extendedKeyboard();
+  eraseScreen();
 
   // get new seed for random numbers
   randomSeed(analogRead(A0));
@@ -147,7 +145,7 @@ void beginGame() {
     oldBoard[index] = 0;
   }
   
-  // load best score from EEPROM
+  // load best score
   loadBestScore();
   
   // add start tiles
@@ -179,8 +177,13 @@ void playGame() {
       
       if (!movesAvailable()) {
         over = true;
-        minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA);  minitel.print("Le jeu est bloqué :(");
-        while(!minitel.getKeyCode());
+        if (sound) minitel.bip();
+        minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA); minitel.attributs(CLIGNOTEMENT); minitel.print("Le jeu est bloqué !");
+        unsigned long timeout = millis();
+        while(millis()-timeout < 5000) {
+          if (minitel.getKeyCode()) break;
+          delay(100);
+        }
       }
     }
 
@@ -403,7 +406,7 @@ bool tilesMatchesAvailable() {
 }
 
 void ccounted () {
-  minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA);  minitel.print("Bon ok d'accord !");
+  minitel.newXY(1,0); minitel.print("Bon ok d'accord !");
   if (sound) minitel.bip(); delay(500);
   if (sound) minitel.bip(); delay(500);
   minitel.newXY(1,0); minitel.cancel();
@@ -803,22 +806,27 @@ bool displayConfirm(String str){
 }
 
 void display2048() {
+  eraseScreen();
   int8_t y = 8;
-  minitel.newXY(6,y++);minitel.print("  _");minitel.repeat(24);minitel.print("  ");
-  minitel.newXY(6,y++);minitel.print(" / ");minitel.repeat(24);minitel.print("\\ ");
-  minitel.newXY(6,y++);minitel.print(" {  Et voilà c'est fait:    {");
-  minitel.newXY(6,y++);minitel.print(" {   la tuile ");minitel.attributs(INVERSION_FOND); minitel.print("2048");minitel.attributs(FOND_NORMAL);minitel.print("          {");
-  minitel.newXY(6,y++);minitel.print(" {   le Graal...            {");
-  minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
-  minitel.newXY(6,y++);minitel.print(" { ");
-    minitel.attributs(DOUBLE_LARGEUR);minitel.attributs(CLIGNOTEMENT);minitel.print("  BRAVO !   ");
-    minitel.attributs(GRANDEUR_NORMALE);minitel.attributs(FIXE);minitel.print(" {");
-  minitel.newXY(6,y++);minitel.print(" \\_");minitel.repeat(24);minitel.print("/ ");
-  for (int8_t i = 0; i < 11; i++) {
-    if (sound) minitel.bip();
-    delay(250);
+  delay(100);minitel.newXY(6,y++);minitel.print("  _");minitel.repeat(24);minitel.print("  ");
+  delay(100);minitel.newXY(6,y++);minitel.print(" / ");minitel.repeat(24);minitel.print("\\ ");
+  delay(100);minitel.newXY(6,y++);minitel.print(" {  Et voilà c'est fait:    {");
+  delay(500);minitel.newXY(6,y++);minitel.print(" {   la tuile ");minitel.attributs(DOUBLE_LARGEUR);minitel.attributs(INVERSION_FOND); minitel.print("2048");minitel.attributs(GRANDEUR_NORMALE);minitel.attributs(FOND_NORMAL);minitel.print("      {");
+  delay(500);minitel.newXY(6,y++);minitel.print(" {    le Graal ...          {");
+  delay(500);minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
+  delay(100);minitel.newXY(6,y++);minitel.print(" {  ");
+    minitel.attributs(DOUBLE_LARGEUR);minitel.attributs(INVERSION_FOND);minitel.attributs(CLIGNOTEMENT);minitel.print("  BRAVO!!! ");
+    minitel.attributs(GRANDEUR_NORMALE);minitel.attributs(FOND_NORMAL);minitel.attributs(FIXE);minitel.print("  {");
+  delay(100);minitel.newXY(6,y++);minitel.print(" \\_");minitel.repeat(24);minitel.print("/ ");
+  if (sound) {
+    uint32_t beat = 0b01010111011110110101011101111011; // 1=bip, 0=rest
+    for (int8_t i = 31; i >= 0 ; i--) {
+      if (bitRead(beat, i)) minitel.bip();
+      delay(250);
+    }
+  } else {
+    delay(4000);
   }
-  delay(2000);
   minitel.newXY(6,y++);minitel.print(" / ");minitel.repeat(24);minitel.print("\\ ");
   minitel.newXY(6,y++);minitel.print(" {  On continue ?           {");
   minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
@@ -862,16 +870,22 @@ void displayScore(bool best) {
   }
   minitel.newXY(6,y++);minitel.print(" \\ ");minitel.repeat(24);minitel.print("/ ");
   minitel.newXY(6,y++);minitel.print("  ~");minitel.repeat(24);minitel.print("  ");
-  if (best && sound) {
-    uint32_t tmp = bestScore;
-    while (tmp) {
-      tmp>>=1;
+  if (sound) {
+    if (best) {
+      uint32_t beat = 0b01111010011110100111101001111010; // 1=bip, 0=rest
+      for (int8_t i = 31; i >= 0; i--) {
+        if (bitRead(beat, i)) minitel.bip();
+        delay(250);
+      }
+    } else {
       minitel.bip();
       delay(250);
     }
+  } else {
+    delay(3000);
   }
-  //delay(500); minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA); minitel.print("Appuyer sur une touche...");
   flushInputs();
+  delay(500); minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA); minitel.print("Appuie sur une touche ..");
   while (!minitel.getKeyCode());
   
 }
