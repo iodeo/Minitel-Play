@@ -20,7 +20,7 @@ Hardware such as MiniPlay cartridge needs to be powered from minitel DIN port.
 MiniDev cartridge can be powered via usb port alternately.
 See table below for information on power source versus minitel types.
 
-![types_minitel](/types.png)
+![minitel types](/assets/minitel_types.png)
 
 ## EXTERNAL LINKS
 * Hackaday's project page : https://hackaday.io/project/194655
