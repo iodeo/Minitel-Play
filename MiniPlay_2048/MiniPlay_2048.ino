@@ -982,7 +982,7 @@ void setupEEPROM() {
   uint8_t magic = EEPROM.read(54);
   if (magic != MAGIC) {
     debugPrintln("Wrong magic : Initialize EEPROM");
-    for (uint8_t i = 0; i < 54; i++) EEPROM.write(i,0);
+    for (uint8_t i = 0; i < 54; i++) EEPROM.update(i,0);
     EEPROM.write(54,MAGIC);
   }
 }
