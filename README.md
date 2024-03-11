@@ -14,11 +14,11 @@ Alternately, dedicated hardware is available in two versions:
 * MiniDev cartridge: with usb interface for easy programming in order to change the game or create new ones !
 
 ## Compatibility
-In terms of serial protocol, the programs are written for compatibility with early Minitel versions.
-
-Hardware such as MiniPlay cartridge needs to be powered from minitel DIN port.
-MiniDev cartridge can be powered via usb port alternately.
+In terms of serial protocol, some programs are written for compatibility with early Minitel versions. It is the case for MiniPlay_Pong.
+However, MiniPlay cartridge needs to be powered from minitel DIN port that is not possible for all Minitel versions.
 See table below for information on power source versus minitel types.
+
+MiniDev cartridge can be powered via usb port alternately.
 
 ![minitel types](/assets/minitel_types.png)
 
