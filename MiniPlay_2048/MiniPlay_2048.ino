@@ -486,12 +486,12 @@ int8_t getPlayerCommand() {
 void drawScoreBar() {
   minitel.newXY(6,1);  minitel.print("SCORE:");
   String str = String(score);
-  while (str.length() < 6) str = " " + str;
+  while (str.length() < 6) str = "0" + str;
   if (str.length() == 6) str = " " + str;
   minitel.print(str);
   minitel.newXY(23,1); minitel.print("BEST:");
   str = String(bestScore);
-  while (str.length() < 6) str = " " + str;
+  while (str.length() < 6) str = "0" + str;
   if (str.length() == 6) str = " " + str;
   minitel.print(str);
 }
