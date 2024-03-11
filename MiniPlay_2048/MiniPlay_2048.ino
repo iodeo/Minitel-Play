@@ -7,13 +7,15 @@
 
 //----- Macros -----------------------------------------
 
-#define MINITEL_PORT Serial1 //for Leonardo
+#define MINITEL_PORT Serial1 //for MiniDev or other atmega32u4 based boards
+// #define MINITEL_PORT Serial //for Miniplay or other atmega328p based boards
 
-#define DEBUG false //WARNING! program will not start if DEBUG true without serial monitoring
+#define DEBUG false //WARNING: only for artmega32u4 
+
+#define MAGIC 0x27 // for EEPROM setup
 
 #if DEBUG // Debug enabled
   #define DEBUG_PORT Serial
-  #define debugBegin(x)     DEBUG_PORT.begin(x); while(!DEBUG_PORT) // only for native usb like Leonardo
   #define debugPrint(x)     DEBUG_PORT.print(x)
   #define debugPrintln(x)   DEBUG_PORT.println(x)
   #define debugPrintf(...)  pf(__VA_ARGS__) // for Arduinos
@@ -73,12 +75,8 @@ int8_t ccount = 0;
 
 void setup() {
 
-  // set debug port
-  debugBegin(9600);
-  debugPrintln("debug port ready");
-
-  // wait minitel screen to warm up
-  delay(3000);
+  // be sure minitel is ready
+  delay(500);
   
   // set minitel at 4800 bauds, or fall back to default
   if (minitel.searchSpeed() != 4800) {     // search speed
@@ -92,10 +90,33 @@ void setup() {
   minitel.echo(false);
   minitel.extendedKeyboard();
   eraseScreen();
+  debugPrintln("minitel ready");
 
   // get new seed for random numbers
-  randomSeed(analogRead(A0));
-  
+  //randomSeed(analogRead(A0));
+
+  setupEEPROM();
+
+  // waiting bar
+  int8_t x = 14;
+  int8_t y = 10;
+  delay(1000);
+  minitel.newXY(x+1,y-1); minitel.print("wArMinG uP");
+  minitel.newXY(x,y); minitel.print("_"); minitel.repeat(11);
+  minitel.newXY(x-1,y+1); minitel.print("}");
+  minitel.newXY(x+12,y+1); minitel.print("{");
+  minitel.newXY(x,y+2); minitel.print("~"); minitel.repeat(11);
+  minitel.newXY(x,y+1); minitel.attributs(CARACTERE_VERT); minitel.attributs(INVERSION_FOND);
+  while (x++ < 26) { 
+    minitel.printChar(' '); 
+    delay(500);
+  }
+  minitel.newXY(15,y-1);
+  while (x++ < 40) {
+    minitel.printChar(' ');
+    delay(25);
+  }
+  delay(250);
 }
 
 //----- Main loop --------------------------------------
@@ -144,6 +165,9 @@ void beginGame() {
     board[index] = 0; //index?index+1:2;
     oldBoard[index] = 0;
   }
+
+  // get new seed for random numbers
+  randomSeed(millis());
   
   // load best score
   loadBestScore();
@@ -460,13 +484,15 @@ int8_t getPlayerCommand() {
 //----- Elements drawing -------------------------------
 
 void drawScoreBar() {
-  minitel.newXY(6,1);  minitel.print("SCORE: ");
+  minitel.newXY(6,1);  minitel.print("SCORE:");
   String str = String(score);
-  while (str.length() < 6) str = "0" + str;
+  while (str.length() < 6) str = " " + str;
+  if (str.length() == 6) str = " " + str;
   minitel.print(str);
-  minitel.newXY(23,1); minitel.print("BEST: ");
+  minitel.newXY(23,1); minitel.print("BEST:");
   str = String(bestScore);
-  while (str.length() < 6) str = "0" + str;
+  while (str.length() < 6) str = " " + str;
+  if (str.length() == 6) str = " " + str;
   minitel.print(str);
 }
 
@@ -627,9 +653,6 @@ void displayWelcome() {
   minitel.newXY(14,y++);minitel.graphicMode();minitel.attributs(CARACTERE_VERT);
     minitel.graphic(0b110100);minitel.graphic(0b111111);minitel.repeat(11);minitel.graphic(0b111000);
 
-  minitel.newXY(12,19);minitel.attributs(CARACTERE_JAUNE);minitel.attributs(CLIGNOTEMENT);
-    minitel.print("APPUYER SUR ENVOI");
-
   minitel.newXY(1,23);minitel.attributs(CARACTERE_VERT);minitel.printChar(' ');
     minitel.attributs(INVERSION_FOND); minitel.print("GUIDE");
     minitel.attributs(FOND_NORMAL); minitel.print(" Règles du jeu");
@@ -640,6 +663,9 @@ void displayWelcome() {
   minitel.newXY(32,24);minitel.attributs(CARACTERE_MAGENTA);minitel.print("(C) 2023");
 
   if (sound) minitel.bip();
+  
+  minitel.newXY(12,19);minitel.attributs(CARACTERE_JAUNE);minitel.attributs(CLIGNOTEMENT);
+  minitel.print("APPUYER SUR ENVOI");
 }
 
 void displayOptions(bool inGame) {
@@ -864,30 +890,31 @@ void displayScore(bool best) {
   minitel.newXY(6,y);  minitel.print(" {  Votre score est         {");
   minitel.newXY(27,y++);minitel.attributs(INVERSION_FOND); minitel.print(String(score));
   minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
-  if (best) {
-    minitel.newXY(6,y++);minitel.printChar(' ');minitel.attributs(INVERSION_FOND);minitel.attributs(CLIGNOTEMENT);minitel.attributs(DOUBLE_HAUTEUR);y++;minitel.print("  NOUVEAU MEILLEUR SCORE ! ");minitel.attributs(FOND_NORMAL);minitel.attributs(FIXE);minitel.printChar(' ');
-    minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
-  }
   minitel.newXY(6,y++);minitel.print(" \\ ");minitel.repeat(24);minitel.print("/ ");
   minitel.newXY(6,y++);minitel.print("  ~");minitel.repeat(24);minitel.print("  ");
-  if (sound) {
-    if (best) {
+  delay(2000);
+  minitel.newXY(1,0); minitel.cancel(); // erase status row 0
+  if (!best) {
+    if (sound) minitel.bip();
+  }
+  else {
+    y -= 2;
+    minitel.newXY(6,y++);minitel.printChar(' ');minitel.attributs(INVERSION_FOND);minitel.attributs(CLIGNOTEMENT);minitel.attributs(DOUBLE_HAUTEUR);y++;minitel.print("  NOUVEAU MEILLEUR SCORE ! ");minitel.attributs(FOND_NORMAL);minitel.attributs(FIXE);minitel.printChar(' ');
+    minitel.newXY(6,y++);minitel.print(" { ");minitel.repeat(25);minitel.print("{");
+    minitel.newXY(6,y++);minitel.print(" \\ ");minitel.repeat(24);minitel.print("/ ");
+    minitel.newXY(6,y++);minitel.print("  ~");minitel.repeat(24);minitel.print("  ");
+    if (sound) {
       uint32_t beat = 0b01111010011110100111101001111010; // 1=bip, 0=rest
       for (int8_t i = 31; i >= 0; i--) {
         if (bitRead(beat, i)) minitel.bip();
         delay(250);
       }
-    } else {
-      minitel.bip();
-      delay(250);
     }
-  } else {
-    delay(3000);
   }
+  delay(1000);
   flushInputs();
-  delay(500); minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA); minitel.print("Appuie sur une touche ..");
+  minitel.newXY(1,0); minitel.attributs(CARACTERE_MAGENTA); minitel.print("Appuie sur une touche ..");
   while (!minitel.getKeyCode());
-  
 }
 
 //----- EEPROM functions -------------------------------
@@ -905,6 +932,7 @@ void displayScore(bool best) {
  *   24 to 27: mode 2x2 (2*2 int8_t -> 4 bytes)
  *   28 to 36: mode 3x3 (3*3 int8_t -> 9 bytes)
  *   37 to 52: mode 4x4 (4*4 int8_t -> 16 bytes)
+ *  Byte 54 : EEPROM magic
  */
 
 void saveBestScore() {
@@ -947,5 +975,14 @@ void loadBoard() {
     EEPROM.get(addr, board[i]);
     if (board[i] > maxTile) maxTile = board[i];
     addr += sizeof(int8_t);
+  }
+}
+
+void setupEEPROM() {
+  uint8_t magic = EEPROM.read(54);
+  if (magic != MAGIC) {
+    debugPrintln("Wrong magic : Initialize EEPROM");
+    for (uint8_t i = 0; i < 54; i++) EEPROM.write(i,0);
+    EEPROM.write(54,MAGIC);
   }
 }
