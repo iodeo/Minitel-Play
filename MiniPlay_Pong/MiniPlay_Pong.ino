@@ -100,7 +100,7 @@
 Minitel minitel(MINITEL_PORT);
 
 bool sound = true;
-uint8_t nBall = 5;
+uint8_t nBall = 15;
 uint8_t paddle = WOOD;
 uint8_t paddleSize = SMALL_PADDLE;
 uint8_t halfPaddleSize = (paddleSize-1)/2;
@@ -1184,7 +1184,7 @@ void displayRobert() {
   minitel.println(" Salut,");
   minitel.println(" C'est moi, Robert I !");
   minitel.println(" Avec I comme Intelligence.");
-  minitel.println(" Et non, j'ai rien d'artificiel");
+  minitel.println(" Et non, j'ai rien d'Artificiel");
   minitel.newXY(8,8);minitel.attributs(CLIGNOTEMENT);minitel.print(" \\|/");
   
   drawParameterBar(REACTIVITY,   19, 9);
